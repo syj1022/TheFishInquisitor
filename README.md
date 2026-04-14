@@ -5,6 +5,8 @@ out_of_scope: Production deployment playbooks and backend infrastructure operati
 
 # TheFishInquisitor
 
+![TheFishInquisitor cover](public/assets/cover.png)
+
 TheFishInquisitor is a local-first Texas Hold'em hand review app focused on fast replay + sharp critique.
 
 It is designed for training and post-hand discussion:
