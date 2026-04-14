@@ -100,18 +100,6 @@ npm run build    # production build check
 - No persistence is implemented in this MVP.
 - Frontend-only architecture means browser-side key exposure risk remains.
 
-## Troubleshooting
-
-- **No voice playback**
-  - first click can require browser user interaction before autoplay is allowed,
-  - verify system/browser output device is not muted,
-  - open Settings and confirm a valid voice mode/voice selection.
-- **Cloud voice call fails**
-  - check API key validity and model/voice availability in your account,
-  - verify network access from browser to API endpoint.
-- **Validation blocks submit**
-  - check for duplicate cards/positions and missing amounts on size-required actions.
-
 ## Roadmap Direction
 
 - richer GTO diagnostics and confidence display,
