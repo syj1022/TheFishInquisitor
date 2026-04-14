@@ -1,7 +1,3 @@
----
-abstract: Setup and local usage instructions for TheFishInquisitor browser MVP.
-out_of_scope: Production deployment playbooks and backend infrastructure operations.
----
 
 # TheFishInquisitor (审鱼者)
 
