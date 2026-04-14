@@ -5,12 +5,29 @@ out_of_scope: Production deployment playbooks and backend infrastructure operati
 
 # TheFishInquisitor
 
-Local-first Texas Hold'em review UI with:
-- table-first manual builder input (2-9 players, editable seats, visual cards, per-street actions),
-- prompt parsing pipeline with schema checks,
-- GTO-first heuristic critique,
-- roommate-style short commentary,
-- immediate browser voice playback.
+TheFishInquisitor is a local-first Texas Hold'em hand review app focused on fast replay + sharp critique.
+
+It is designed for training and post-hand discussion:
+- build a complete hand directly on a visual poker table (2-9 players),
+- evaluate a specific target player with GTO-oriented logic,
+- output a short "roommate-style" roast line,
+- auto-play the critique voice immediately,
+- reveal technical reasons on demand.
+
+## Core Features
+
+- **Table-first editing**
+  Edit players, positions, stacks, hole cards, board cards, and street actions directly from the table scene.
+- **Two input paths**
+  Manual builder is primary; prompt parsing remains available through the structured parser path.
+- **Street-by-street action timeline**
+  Preflop/Flop/Turn/River each have independent action editing with add/remove controls and action ordering.
+- **Targeted critique**
+  Evaluate one selected player at a time with configurable information mode.
+- **Voice playback**
+  Critique can be spoken immediately after evaluation and replayed from the control panel.
+- **Extensible evaluation engine**
+  Current MVP includes local rule heuristics and OpenAI evaluation wiring, with interfaces ready for future solver adapters.
 
 ## Quick Start
 
@@ -20,6 +37,12 @@ npm run dev
 ```
 
 Open the local Vite URL and use the app directly in the browser.
+
+## Recommended Runtime
+
+- Node.js `18+` (or `20+` preferred)
+- npm `9+`
+- Modern browser with Web Speech/Web Audio support (Chrome recommended)
 
 ## Manual Builder Flow
 
@@ -34,19 +57,43 @@ Validation rules:
 - duplicate positions are rejected,
 - call/bet/raise/all-in actions require a positive amount.
 
-Avatar asset path:
-- put your image at `public/assets/shiqiang.png`
+## Settings
+
+- Open **Settings** (top-right corner).
+- Paste your **OpenAI API key**.
+- Choose voice mode and voice option for critique playback.
+- Optional avatar asset path:
+  - put your image at `public/assets/shiqiang.png`
 
 ## Use with OpenAI
 
 1. Start app with `npm run dev`.
 2. Paste your OpenAI API key in **Settings**.
-3. For TTS, choose **Cloud male CN (recommended)** in settings and pick a voice.
+3. Trigger critique from the right-side control panel.
 
-## Test
+## Project Structure
+
+```text
+src/
+  components/            UI panels and table widgets
+  components/manual/     table editor, player cards, board/actions editors
+  lib/parser/            manual + prompt parsing and schema guards
+  lib/evaluation/        rule engine, evaluator interface, model evaluator
+  lib/commentary/        style-constrained short critique generation
+  lib/voice/             browser/cloud TTS orchestration
+  types/                 shared poker domain contracts
+tests/
+  unit/                  parser/evaluator/commentary/tts tests
+  components/            React component behavior tests
+  e2e/                   smoke-path app tests
+```
+
+## Development Commands
 
 ```bash
-npm run test
+npm run dev      # run local app
+npm run test     # run tests
+npm run build    # production build check
 ```
 
 ## API Key Handling (MVP)
@@ -54,3 +101,22 @@ npm run test
 - API key input is kept in memory only.
 - No persistence is implemented in this MVP.
 - Frontend-only architecture means browser-side key exposure risk remains.
+
+## Troubleshooting
+
+- **No voice playback**
+  - first click can require browser user interaction before autoplay is allowed,
+  - verify system/browser output device is not muted,
+  - open Settings and confirm a valid voice mode/voice selection.
+- **Cloud voice call fails**
+  - check API key validity and model/voice availability in your account,
+  - verify network access from browser to API endpoint.
+- **Validation blocks submit**
+  - check for duplicate cards/positions and missing amounts on size-required actions.
+
+## Roadmap Direction
+
+- richer GTO diagnostics and confidence display,
+- plug-in solver adapter behind existing evaluator interface,
+- stronger hand-history import/parsing,
+- improved voice provider options and reliability diagnostics.
