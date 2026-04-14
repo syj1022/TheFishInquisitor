@@ -3,7 +3,7 @@ abstract: Setup and local usage instructions for TheFishInquisitor browser MVP.
 out_of_scope: Production deployment playbooks and backend infrastructure operations.
 ---
 
-# TheFishInquisitor
+# TheFishInquisitor (审判鱼者)
 
 ![TheFishInquisitor cover](public/assets/cover.png)
 
