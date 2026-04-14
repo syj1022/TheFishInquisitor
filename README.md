@@ -12,7 +12,7 @@ TheFishInquisitor is a local-first Texas Hold'em hand review app focused on fast
 It is designed for training and post-hand discussion:
 - build a complete hand directly on a visual poker table (2-9 players),
 - evaluate a specific target player with GTO-oriented logic,
-- output a short "roommate-style" roast line,
+- output a short Shiqiang's roast line,
 - auto-play the critique voice immediately,
 - reveal technical reasons on demand.
 
