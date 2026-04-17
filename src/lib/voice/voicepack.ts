@@ -18,7 +18,6 @@ const CLIP_URL = {
   laugh3: new URL("../../../voicepack/魔性大笑3.MP3", import.meta.url).href,
   findDaddy: new URL("../../../voicepack/纯在找爸爸.MP3", import.meta.url).href,
   fish: new URL("../../../voicepack/鱼.MP3", import.meta.url).href,
-  laugh7: new URL("../../../voicepack/魔性大笑7.MP3", import.meta.url).href,
   doubleFish: new URL("../../../voicepack/两条鱼.MP3", import.meta.url).href,
   laugh6: new URL("../../../voicepack/魔性大笑6.MP3", import.meta.url).href,
   laugh4: new URL("../../../voicepack/魔性大笑4.MP3", import.meta.url).href,
@@ -37,8 +36,7 @@ const LAUGH_POOL = [
   CLIP_URL.laugh3,
   CLIP_URL.laugh4,
   CLIP_URL.laugh5,
-  CLIP_URL.laugh6,
-  CLIP_URL.laugh7
+  CLIP_URL.laugh6
 ] as const;
 const LAUGH_TRIGGER_RATE = 0.18;
 
@@ -46,7 +44,7 @@ const SCENARIO_VARIANTS: Readonly<Record<string, readonly string[]>> = {
   鱼: [CLIP_URL.fish, CLIP_URL.doubleFish, CLIP_URL.laugh1, CLIP_URL.laugh2, CLIP_URL.laugh3, CLIP_URL.laugh4],
   "你干嘛啊": [CLIP_URL.whatAreYouDoing, CLIP_URL.cluelessBoth, CLIP_URL.alwaysHasCards, CLIP_URL.laugh5],
   纯在找爸爸: [CLIP_URL.findDaddy, CLIP_URL.doubleFish, CLIP_URL.fish, CLIP_URL.laugh6],
-  "你在讲什么鬼故事": [CLIP_URL.ghostStory, CLIP_URL.cluelessBoth, CLIP_URL.laugh7],
+  "你在讲什么鬼故事": [CLIP_URL.ghostStory, CLIP_URL.cluelessBoth, CLIP_URL.laugh6],
   "该你收池，打得有问题，不该call的": [CLIP_URL.badCall, CLIP_URL.overplay, CLIP_URL.polarized],
   太overplay了: [CLIP_URL.overplay, CLIP_URL.polarized, CLIP_URL.alwaysHasCards],
   很极化: [CLIP_URL.polarized, CLIP_URL.overplay],
@@ -113,7 +111,8 @@ export function chooseVoicepackClip(line: string, randomFn: RandomFn = Math.rand
 
   const variants = variantsForLine(line);
   if (variants.length === 0) {
-    return null;
+    const laughIndex = Math.floor(clampProbability(randomFn()) * LAUGH_POOL.length);
+    return LAUGH_POOL[laughIndex] ?? LAUGH_POOL[0];
   }
   const probability = clampProbability(randomFn());
   const index = Math.floor(probability * variants.length);
@@ -128,10 +127,7 @@ export async function playVoicepackLine(line: string, randomFn: RandomFn = Math.
     return { ok: false, error: "Cannot speak an empty commentary line." };
   }
 
-  const clip = chooseVoicepackClip(line, randomFn);
-  if (!clip) {
-    return { ok: false, error: "No matching voicepack clip for this commentary line." };
-  }
+  const clip = chooseVoicepackClip(line, randomFn) ?? LAUGH_POOL[0];
 
   try {
     if (activeAudio) {

@@ -18,7 +18,6 @@ export default function App() {
   const [mode, setMode] = useState<InfoMode>("revealed_cards");
   const [commentary, setCommentary] = useState<CommentaryPayload | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
-  const [voiceDebugMessage, setVoiceDebugMessage] = useState<string | null>(null);
   const openAIEvaluator = useMemo(
     () => (apiKey.trim() ? createOpenAIEvaluationClient({ apiKey }) : undefined),
     [apiKey]
@@ -30,7 +29,6 @@ export default function App() {
     setSelectedPlayerId(hasSelectedPlayer ? selectedPlayerId : nextScenario.players[0]?.id ?? "");
     setCommentary(null);
     setStatusMessage(null);
-    setVoiceDebugMessage(null);
   };
 
   const handleCritiqueRequest = async (
@@ -57,11 +55,6 @@ export default function App() {
       const nextCommentary = buildCommentary(evaluation, nextScenario);
       setCommentary(nextCommentary);
       const voiceResult = await playVoicepackLine(nextCommentary.roastLine);
-      setVoiceDebugMessage(
-        voiceResult.ok
-          ? `Voice clip: ${voiceResult.clipLabel ?? "unknown"} (${voiceResult.clipUrl ?? "no-url"})`
-          : null
-      );
       setStatusMessage(voiceResult.ok ? null : voiceResult.error ?? "Voice playback failed.");
       return null;
     } catch (error) {
@@ -73,9 +66,6 @@ export default function App() {
 
   const handleVoicePlayback = async (line: string) => {
     const result = await playVoicepackLine(line);
-    setVoiceDebugMessage(
-      result.ok ? `Voice clip: ${result.clipLabel ?? "unknown"} (${result.clipUrl ?? "no-url"})` : null
-    );
     setStatusMessage(result.ok ? null : result.error ?? "Voice playback failed.");
   };
 
@@ -96,7 +86,6 @@ export default function App() {
         onCritiqueRequested={handleCritiqueRequest}
         commentary={commentary}
         statusMessage={statusMessage}
-        voiceDebugMessage={voiceDebugMessage}
         onReplayVoice={handleVoicePlayback}
       />
     </main>

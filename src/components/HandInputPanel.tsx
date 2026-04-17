@@ -22,7 +22,6 @@ interface HandInputPanelProps {
   ) => Promise<string | null> | string | null;
   commentary: CommentaryPayload | null;
   statusMessage: string | null;
-  voiceDebugMessage?: string | null;
   onReplayVoice: (line: string) => void;
 }
 
@@ -94,7 +93,6 @@ export default function HandInputPanel({
   onCritiqueRequested,
   commentary,
   statusMessage,
-  voiceDebugMessage,
   onReplayVoice
 }: HandInputPanelProps) {
   const [seatCount, setSeatCount] = useState(DEFAULT_SEAT_COUNT);
@@ -280,7 +278,6 @@ export default function HandInputPanel({
           ) : null}
 
           {statusMessage ? <p className="coach-status-text">{statusMessage}</p> : null}
-          {voiceDebugMessage ? <p className="coach-status-text">{voiceDebugMessage}</p> : null}
         </aside>
       </div>
       {errorMessage ? <p role="alert">{errorMessage}</p> : null}
