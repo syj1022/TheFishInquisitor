@@ -52,6 +52,7 @@ const SCENARIO_VARIANTS: Readonly<Record<string, readonly string[]>> = {
   很极化: [CLIP_URL.polarized, CLIP_URL.overplay],
   没必要: [CLIP_URL.unnecessary, CLIP_URL.polarized],
   没必要没必要: [CLIP_URL.unnecessary, CLIP_URL.findDaddy],
+  没毛病: [CLIP_URL.noIssueAlt, CLIP_URL.noIssue],
   好fo好fo: [CLIP_URL.goodFo, CLIP_URL.goodPlay, CLIP_URL.playedWell, CLIP_URL.noIssueAlt],
   打得好: [CLIP_URL.playedWell, CLIP_URL.goodPlay, CLIP_URL.noIssueAlt],
   好打好打: [CLIP_URL.goodPlay, CLIP_URL.playedWell, CLIP_URL.noIssueAlt],

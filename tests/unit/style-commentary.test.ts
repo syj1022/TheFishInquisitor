@@ -65,3 +65,34 @@ test("triggers strong-hand win line pool for AT+ and scoop", () => {
   const line = buildRoastLine(result, scenario, () => 0);
   expect(line).toBe("你咋把把有牌呀");
 });
+
+test("defaults to 没毛病 when line is good regardless of winning result", () => {
+  const scenario: HandScenario = {
+    handId: "style-3",
+    players: [
+      { id: "p1", name: "Hero", stack: 100, position: "BTN" },
+      { id: "p2", name: "Villain", stack: 100, position: "BB" }
+    ],
+    potSize: 3,
+    actions: [],
+    board: {
+      flop: ["Ah", "Kd", "Qc"],
+      turn: "2s",
+      river: "3h"
+    },
+    holeCards: {
+      p1: ["7s", "2d"],
+      p2: ["As", "Kc"]
+    }
+  };
+  const result: EvaluationResult = {
+    targetPlayerId: "p1",
+    verdict: "good",
+    severity: 1,
+    summary: "Line remains structurally sound.",
+    rationale: ["No major heuristic penalties were triggered."]
+  };
+
+  const line = buildRoastLine(result, scenario, () => 0);
+  expect(line).toBe("没毛病");
+});

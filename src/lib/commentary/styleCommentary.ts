@@ -14,6 +14,7 @@ export const APPROVED_LINES = [
   "很极化",
   "没必要",
   "没必要没必要",
+  "没毛病",
   "好fo好fo",
   "打得好",
   "好打好打",
@@ -300,13 +301,13 @@ function buildRuleDrivenCandidates(
     add(candidates, "太overplay了", 1.7);
   }
 
+  const candidateCountBeforeFallback = candidates.length;
   if (result.verdict !== "good") {
     add(candidates, "你在干嘛啊", 1.2);
     add(candidates, "你在讲什么鬼故事", 1.2);
     add(candidates, "鱼", 1.1);
   } else {
-    add(candidates, "打得没问题", 1);
-    add(candidates, "好打好打", 0.8);
+    add(candidates, "没毛病", candidateCountBeforeFallback === 0 ? 3 : 1.2);
   }
 
   return candidates;
