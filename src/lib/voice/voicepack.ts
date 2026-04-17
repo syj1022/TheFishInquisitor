@@ -94,6 +94,16 @@ function variantsForLine(line: string): readonly string[] {
   return fuzzyKey ? SCENARIO_VARIANTS[fuzzyKey] : [];
 }
 
+function toClipLabel(clipUrl: string): string {
+  const segment = clipUrl.split("/").pop() ?? clipUrl;
+  const file = segment.split("?")[0] ?? segment;
+  try {
+    return decodeURIComponent(file);
+  } catch {
+    return file;
+  }
+}
+
 export function chooseVoicepackClip(line: string, randomFn: RandomFn = Math.random): string | null {
   const laughRoll = clampProbability(randomFn());
   if (laughRoll < LAUGH_TRIGGER_RATE) {
@@ -138,7 +148,7 @@ export async function playVoicepackLine(line: string, randomFn: RandomFn = Math.
       }
     };
     await audio.play();
-    return { ok: true };
+    return { ok: true, clipUrl: clip, clipLabel: toClipLabel(clip) };
   } catch (error) {
     return { ok: false, error: (error as Error).message || "Voicepack playback failed." };
   }

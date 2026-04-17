@@ -4,6 +4,8 @@
 export interface VoiceResult {
   ok: boolean;
   error?: string;
+  clipUrl?: string;
+  clipLabel?: string;
 }
 
 export interface VoiceOption {
