@@ -6,46 +6,38 @@ import userEvent from "@testing-library/user-event";
 import React from "react";
 import App from "../../src/App";
 
-class MockUtterance {
-  text: string;
-  rate = 1;
-  pitch = 1;
-  voice: SpeechSynthesisVoice | null = null;
-
-  constructor(text: string) {
-    this.text = text;
-  }
-}
-
 test("manual hand review produces short line, expandable reason, and voice trigger", async () => {
   const user = userEvent.setup();
-  const speak = vi.fn();
-  const cancel = vi.fn();
-  const maleVoice = { name: "Yunxi Male", lang: "zh-CN" } as SpeechSynthesisVoice;
+  const play = vi.fn().mockResolvedValue(undefined);
+  const pause = vi.fn();
 
-  vi.stubGlobal("SpeechSynthesisUtterance", MockUtterance);
-  Object.defineProperty(window, "speechSynthesis", {
-    configurable: true,
-    value: {
-      getVoices: () => [maleVoice],
-      cancel,
-      speak
+  vi.stubGlobal(
+    "Audio",
+    class {
+      src: string;
+      currentTime = 0;
+      onended: (() => void) | null = null;
+
+      constructor(src: string) {
+        this.src = src;
+      }
+
+      play = play;
+      pause = pause;
     }
-  });
+  );
 
   render(React.createElement(App));
 
-  expect(screen.getByLabelText("Voice output mode")).toBeInTheDocument();
-  await user.selectOptions(screen.getByLabelText("Voice output mode"), "cloud_male_cn");
-  expect(screen.getByLabelText("Cloud voice")).toBeInTheDocument();
-  await user.selectOptions(screen.getByLabelText("Voice output mode"), "browser_male_cn");
+  expect(screen.queryByLabelText("Voice output mode")).not.toBeInTheDocument();
+  expect(screen.queryByLabelText("Cloud voice")).not.toBeInTheDocument();
 
   expect(screen.getByLabelText("Number of players")).toBeInTheDocument();
   await user.click(screen.getByRole("button", { name: "Submit Manual Hand" }));
   await user.click(screen.getByRole("button", { name: "Critique" }));
 
   expect(screen.queryByText("打得没问题")).not.toBeInTheDocument();
-  expect(speak).toHaveBeenCalledTimes(1);
+  expect(play).toHaveBeenCalledTimes(1);
 
   await user.click(screen.getByRole("button", { name: "View GTO reason" }));
   expect(screen.getByText("No major heuristic penalties were triggered.")).toBeInTheDocument();

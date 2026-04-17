@@ -59,7 +59,7 @@ Validation rules:
 
 - Open **Settings** (top-right corner).
 - Paste your **OpenAI API key**.
-- Choose voice mode and voice option for critique playback.
+- Voice playback is driven by the local `voicepack/` clips (no cloud/local voice mode switching in UI).
 - Optional avatar asset path:
   - put your image at `public/assets/shiqiang.png`
 
@@ -68,6 +68,12 @@ Validation rules:
 1. Start app with `npm run dev`.
 2. Paste your OpenAI API key in **Settings**.
 3. Trigger critique from the right-side control panel.
+
+## Voicepack Mapping
+
+- Place voice files under `voicepack/` at project root.
+- The app maps critique scenarios to one or more voice clips.
+- If multiple clips are mapped to the same scenario, one clip is selected with equal probability per playback.
 
 ## Project Structure
 

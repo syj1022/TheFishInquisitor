@@ -7,11 +7,10 @@ import { getPositionsForSeatCount, hasDuplicateCards } from "../lib/manual/cardU
 import { buildManualInputDraft } from "../lib/manual/manualDraftBuilder";
 import { parseManualInput } from "../lib/parser/manualParser";
 import type { CommentaryPayload } from "../lib/commentary/styleCommentary";
-import { listVoiceOptions, suggestMaleChineseVoiceName, type VoiceOption } from "../lib/voice/tts";
 import type { BoardDraft } from "./manual/BoardCardPicker";
 import type { PlayerDraft } from "./manual/PlayerSetupPanel";
 import type { ActionDraft, ActionsByStreet } from "./manual/StreetActionsEditor";
-import type { CritiqueEngineMode, HandScenario, InfoMode, TtsMode } from "../types/poker";
+import type { CritiqueEngineMode, HandScenario, InfoMode } from "../types/poker";
 
 interface HandInputPanelProps {
   onScenarioReady: (scenario: HandScenario) => void;
@@ -19,13 +18,11 @@ interface HandInputPanelProps {
     scenario: HandScenario,
     targetPlayerId: string,
     mode: InfoMode,
-    critiqueEngineMode: CritiqueEngineMode,
-    preferredVoiceName?: string
+    critiqueEngineMode: CritiqueEngineMode
   ) => Promise<string | null> | string | null;
   commentary: CommentaryPayload | null;
   statusMessage: string | null;
-  onReplayVoice: (line: string, preferredVoiceName?: string) => void;
-  ttsMode: TtsMode;
+  onReplayVoice: (line: string) => void;
 }
 
 const DEFAULT_HAND_ID = "demo-hand";
@@ -91,36 +88,12 @@ function createActionsByStreet(seatCount: number, previous?: ActionsByStreet): A
   };
 }
 
-function normalizeLang(raw: string): string {
-  return raw.toLowerCase().replace("_", "-");
-}
-
-function getCnVoiceOptions(options: VoiceOption[]): VoiceOption[] {
-  const chinese = options.filter((option) => option.isChinese || normalizeLang(option.lang).startsWith("zh-"));
-  return chinese.sort((left, right) => {
-    const leftLang = normalizeLang(left.lang);
-    const rightLang = normalizeLang(right.lang);
-    const leftMainland = leftLang.startsWith("zh-cn") ? 1 : 0;
-    const rightMainland = rightLang.startsWith("zh-cn") ? 1 : 0;
-    if (leftMainland !== rightMainland) {
-      return rightMainland - leftMainland;
-    }
-    const leftMale = left.hasMaleHint ? 1 : 0;
-    const rightMale = right.hasMaleHint ? 1 : 0;
-    if (leftMale !== rightMale) {
-      return rightMale - leftMale;
-    }
-    return left.name.localeCompare(right.name);
-  });
-}
-
 export default function HandInputPanel({
   onScenarioReady,
   onCritiqueRequested,
   commentary,
   statusMessage,
-  onReplayVoice,
-  ttsMode
+  onReplayVoice
 }: HandInputPanelProps) {
   const [seatCount, setSeatCount] = useState(DEFAULT_SEAT_COUNT);
   const [players, setPlayers] = useState<PlayerDraft[]>(() => createInitialPlayers(DEFAULT_SEAT_COUNT));
@@ -136,46 +109,14 @@ export default function HandInputPanel({
   const [mode, setMode] = useState<InfoMode>("revealed_cards");
   const [critiqueEngineMode, setCritiqueEngineMode] = useState<CritiqueEngineMode>("rule_engine");
   const [showReason, setShowReason] = useState(false);
-  const [voiceOptions, setVoiceOptions] = useState<VoiceOption[]>([]);
-  const [preferredVoiceName, setPreferredVoiceName] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const occupiedCards = useMemo(() => flattenSelectedCards(players, board), [players, board]);
   const canShowReason = Boolean(commentary?.gtoReason);
-  const cnVoiceOptions = useMemo(() => getCnVoiceOptions(voiceOptions), [voiceOptions]);
-  const cnMaleVoiceOptions = useMemo(
-    () => cnVoiceOptions.filter((option) => option.hasMaleHint && !option.hasFemaleHint),
-    [cnVoiceOptions]
-  );
 
   useEffect(() => {
     setShowReason(false);
   }, [commentary?.roastLine, commentary?.gtoReason]);
-
-  useEffect(() => {
-    const refreshVoices = () => {
-      const nextOptions = listVoiceOptions();
-      const nextCnOptions = getCnVoiceOptions(nextOptions);
-      const nextCnMaleOptions = nextCnOptions.filter((option) => option.hasMaleHint && !option.hasFemaleHint);
-      setVoiceOptions(nextOptions);
-      const hasCurrent = nextCnMaleOptions.some((option) => option.name === preferredVoiceName);
-      if (!hasCurrent) {
-        const suggested = suggestMaleChineseVoiceName(nextCnMaleOptions);
-        setPreferredVoiceName(suggested ?? "");
-      }
-    };
-
-    refreshVoices();
-
-    if (typeof window !== "undefined" && "speechSynthesis" in window) {
-      const synthesis = window.speechSynthesis;
-      synthesis.addEventListener?.("voiceschanged", refreshVoices);
-      return () => {
-        synthesis.removeEventListener?.("voiceschanged", refreshVoices);
-      };
-    }
-    return undefined;
-  }, [preferredVoiceName, ttsMode]);
 
   const handleSeatCountChange = (nextSeatCount: number) => {
     setSeatCount(nextSeatCount);
@@ -256,13 +197,7 @@ export default function HandInputPanel({
       return;
     }
     onScenarioReady(scenario);
-    const critiqueError = await onCritiqueRequested(
-      scenario,
-      targetPlayerId,
-      mode,
-      critiqueEngineMode,
-      preferredVoiceName || undefined
-    );
+    const critiqueError = await onCritiqueRequested(scenario, targetPlayerId, mode, critiqueEngineMode);
     if (critiqueError) {
       setErrorMessage(critiqueError);
       return;
@@ -315,46 +250,6 @@ export default function HandInputPanel({
             <option value="openai_global">OpenAI global eval</option>
           </select>
 
-          {ttsMode === "browser_male_cn" ? (
-            <>
-              <label htmlFor="voice-select">Voice (male)</label>
-              <select
-                id="voice-select"
-                value={preferredVoiceName}
-                onChange={(event) => setPreferredVoiceName(event.target.value)}
-                disabled={cnMaleVoiceOptions.length === 0}
-              >
-                {cnMaleVoiceOptions.map((option) => (
-                  <option key={option.name} value={option.name}>
-                    {`${option.name} (${option.lang})`}
-                  </option>
-                ))}
-              </select>
-              {cnMaleVoiceOptions.length === 0 ? (
-                <p className="coach-status-text">当前环境未检测到中文男声语音。</p>
-              ) : null}
-
-              <button
-                type="button"
-                className="secondary-button"
-                onClick={() => {
-                  const nextOptions = listVoiceOptions();
-                  const nextCnOptions = getCnVoiceOptions(nextOptions);
-                  const nextCnMaleOptions = nextCnOptions.filter(
-                    (option) => option.hasMaleHint && !option.hasFemaleHint
-                  );
-                  setVoiceOptions(nextOptions);
-                  const suggested = suggestMaleChineseVoiceName(nextCnMaleOptions);
-                  if (!nextCnMaleOptions.some((option) => option.name === preferredVoiceName)) {
-                    setPreferredVoiceName(suggested ?? "");
-                  }
-                }}
-              >
-                Refresh voices
-              </button>
-            </>
-          ) : null}
-
           <button type="button" onClick={handleCritique}>
             Critique
           </button>
@@ -367,7 +262,7 @@ export default function HandInputPanel({
             type="button"
             className="secondary-button"
             disabled={!commentary}
-            onClick={() => commentary && onReplayVoice(commentary.roastLine, preferredVoiceName || undefined)}
+            onClick={() => commentary && onReplayVoice(commentary.roastLine)}
           >
             Replay voice
           </button>

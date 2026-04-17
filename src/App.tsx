@@ -7,15 +7,12 @@ import HandInputPanel from "./components/HandInputPanel";
 import { buildCommentary, type CommentaryPayload } from "./lib/commentary/styleCommentary";
 import { createOpenAIEvaluationClient } from "./lib/evaluation/openaiEvaluator";
 import { createRuleHeuristicEngine } from "./lib/evaluation/ruleHeuristicEngine";
-import { DEFAULT_CLOUD_TTS_VOICE, playCloudMaleChineseVoice } from "./lib/voice/cloudTts";
-import { playCritiqueVoice } from "./lib/voice/tts";
-import type { CritiqueEngineMode, HandScenario, InfoMode, TtsMode } from "./types/poker";
+import { playVoicepackLine } from "./lib/voice/voicepack";
+import type { CritiqueEngineMode, HandScenario, InfoMode } from "./types/poker";
 
 export default function App() {
   const ruleEngine = useMemo(() => createRuleHeuristicEngine(), []);
   const [apiKey, setApiKey] = useState("");
-  const [ttsMode, setTtsMode] = useState<TtsMode>("browser_male_cn");
-  const [cloudVoice, setCloudVoice] = useState(DEFAULT_CLOUD_TTS_VOICE);
   const [scenario, setScenario] = useState<HandScenario | null>(null);
   const [selectedPlayerId, setSelectedPlayerId] = useState("");
   const [mode, setMode] = useState<InfoMode>("revealed_cards");
@@ -38,8 +35,7 @@ export default function App() {
     nextScenario: HandScenario,
     targetPlayerId: string,
     nextMode: InfoMode,
-    critiqueEngineMode: CritiqueEngineMode,
-    preferredVoiceName?: string
+    critiqueEngineMode: CritiqueEngineMode
   ): Promise<string | null> => {
     setScenario(nextScenario);
     setSelectedPlayerId(targetPlayerId);
@@ -58,10 +54,7 @@ export default function App() {
 
       const nextCommentary = buildCommentary(evaluation);
       setCommentary(nextCommentary);
-      const voiceResult =
-        ttsMode === "cloud_male_cn"
-          ? await playCloudMaleChineseVoice(nextCommentary.roastLine, { apiKey, voice: cloudVoice })
-          : playCritiqueVoice(nextCommentary.roastLine, preferredVoiceName);
+      const voiceResult = await playVoicepackLine(nextCommentary.roastLine);
       setStatusMessage(voiceResult.ok ? null : voiceResult.error ?? "Voice playback failed.");
       return null;
     } catch (error) {
@@ -71,11 +64,8 @@ export default function App() {
     }
   };
 
-  const handleVoicePlayback = async (line: string, preferredVoiceName?: string) => {
-    const result =
-      ttsMode === "cloud_male_cn"
-        ? await playCloudMaleChineseVoice(line, { apiKey, voice: cloudVoice })
-        : playCritiqueVoice(line, preferredVoiceName);
+  const handleVoicePlayback = async (line: string) => {
+    const result = await playVoicepackLine(line);
     setStatusMessage(result.ok ? null : result.error ?? "Voice playback failed.");
   };
 
@@ -88,10 +78,6 @@ export default function App() {
           <ApiKeyPanel
             apiKey={apiKey}
             onApiKeyChange={setApiKey}
-            ttsMode={ttsMode}
-            onTtsModeChange={setTtsMode}
-            cloudVoice={cloudVoice}
-            onCloudVoiceChange={setCloudVoice}
           />
         </details>
       </header>
@@ -101,7 +87,6 @@ export default function App() {
         commentary={commentary}
         statusMessage={statusMessage}
         onReplayVoice={handleVoicePlayback}
-        ttsMode={ttsMode}
       />
     </main>
   );

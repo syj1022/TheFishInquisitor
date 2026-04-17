@@ -4,7 +4,6 @@
 export type Street = "preflop" | "flop" | "turn" | "river";
 export type InfoMode = "revealed_cards" | "incomplete_info";
 export type CritiqueEngineMode = "rule_engine" | "openai_global";
-export type TtsMode = "browser_male_cn" | "cloud_male_cn";
 export type PlayerAction = "fold" | "check" | "call" | "bet" | "raise" | "all_in";
 export type CardCode = `${string}${string}`;
 export type TablePosition =

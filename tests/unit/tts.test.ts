@@ -1,78 +1,37 @@
-// abstract: Unit tests for browser TTS playback guardrails and playback calls.
-// out_of_scope: UI-level critique wiring and commentary generation behavior.
+// abstract: Unit tests for voicepack clip selection and playback.
+// out_of_scope: Evaluator and commentary generation rules.
 
-import { playCritiqueVoice } from "../../src/lib/voice/tts";
+import { chooseVoicepackClip, playVoicepackLine } from "../../src/lib/voice/voicepack";
 
-test("resumes paused synthesis before speaking", () => {
-  const speak = vi.fn();
-  const cancel = vi.fn();
-  const resume = vi.fn();
-  const maleVoice = { name: "Yunxi Male", lang: "zh-CN" } as SpeechSynthesisVoice;
+test("selects uniformly from all variants for a scenario", () => {
+  const first = chooseVoicepackClip("好fo好fo", () => 0);
+  const last = chooseVoicepackClip("好fo好fo", () => 0.999999);
 
-  vi.stubGlobal(
-    "SpeechSynthesisUtterance",
-    class {
-      text: string;
-      rate = 1;
-      pitch = 1;
-      voice: SpeechSynthesisVoice | null = null;
-
-      constructor(text: string) {
-        this.text = text;
-      }
-    }
-  );
-
-  Object.defineProperty(window, "speechSynthesis", {
-    configurable: true,
-    value: {
-      paused: true,
-      getVoices: () => [maleVoice],
-      cancel,
-      resume,
-      speak
-    }
-  });
-
-  const result = playCritiqueVoice("打得没问题");
-  expect(result.ok).toBe(true);
-  expect(resume).toHaveBeenCalledTimes(1);
-  expect(cancel).toHaveBeenCalledTimes(1);
-  expect(speak).toHaveBeenCalledTimes(1);
+  expect(first).toBeTruthy();
+  expect(last).toBeTruthy();
+  expect(first).not.toEqual(last);
 });
 
-test("fails when no supported male voice exists", () => {
-  const speak = vi.fn();
-  const cancel = vi.fn();
-  const resume = vi.fn();
-  const femaleVoice = { name: "Xiaoxiao", lang: "zh-CN" } as SpeechSynthesisVoice;
+test("plays one selected voicepack clip", async () => {
+  const play = vi.fn().mockResolvedValue(undefined);
+  const pause = vi.fn();
 
   vi.stubGlobal(
-    "SpeechSynthesisUtterance",
+    "Audio",
     class {
-      text: string;
-      rate = 1;
-      pitch = 1;
-      voice: SpeechSynthesisVoice | null = null;
+      src: string;
+      currentTime = 0;
 
-      constructor(text: string) {
-        this.text = text;
+      constructor(src: string) {
+        this.src = src;
       }
+
+      play = play;
+      pause = pause;
     }
   );
 
-  Object.defineProperty(window, "speechSynthesis", {
-    configurable: true,
-    value: {
-      paused: false,
-      getVoices: () => [femaleVoice],
-      cancel,
-      resume,
-      speak
-    }
-  });
-
-  const result = playCritiqueVoice("打得没问题");
-  expect(result.ok).toBe(false);
-  expect(speak).not.toHaveBeenCalled();
+  const result = await playVoicepackLine("打得没问题", () => 0);
+  expect(result.ok).toBe(true);
+  expect(play).toHaveBeenCalledTimes(1);
 });
