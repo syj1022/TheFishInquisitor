@@ -15,26 +15,27 @@ const SAMPLE_SCENARIO: HandScenario = {
 };
 
 test("parses OpenAI JSON result into EvaluationResult", async () => {
+  const fetchMock = vi.fn(async () => ({
+    ok: true,
+    json: async () => ({
+      choices: [
+        {
+          message: {
+            content: JSON.stringify({
+              verdict: "questionable",
+              severity: 2,
+              summary: "Global line has marginal overplay.",
+              rationale: ["Action 1 sizing is too large for the current pot."],
+              alternativeLine: "Prefer smaller sizing."
+            })
+          }
+        }
+      ]
+    })
+  }));
   vi.stubGlobal(
     "fetch",
-    vi.fn(async () => ({
-      ok: true,
-      json: async () => ({
-        choices: [
-          {
-            message: {
-              content: JSON.stringify({
-                verdict: "questionable",
-                severity: 2,
-                summary: "Global line has marginal overplay.",
-                rationale: ["Action 1 sizing is too large for the current pot."],
-                alternativeLine: "Prefer smaller sizing."
-              })
-            }
-          }
-        ]
-      })
-    }))
+    fetchMock
   );
 
   const client = createOpenAIEvaluationClient({ apiKey: "sk-test" });
@@ -43,6 +44,10 @@ test("parses OpenAI JSON result into EvaluationResult", async () => {
   expect(result.targetPlayerId).toBe("p1");
   expect(result.verdict).toBe("questionable");
   expect(result.rationale[0]).toContain("Action 1");
+  const [, rawInit] = fetchMock.mock.calls[0] ?? [];
+  const body = JSON.parse(String((rawInit as RequestInit).body));
+  const userPayload = JSON.parse(body.messages[1].content);
+  expect(userPayload.strictShowdown.status).toBe("incomplete_cards");
 });
 
 test("throws when openai response is not ok", async () => {

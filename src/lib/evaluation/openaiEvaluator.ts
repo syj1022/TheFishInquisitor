@@ -2,6 +2,7 @@
 // out_of_scope: Commentary phrase selection and browser voice playback.
 
 import type { CritiqueEngineMode, EvaluationResult, HandScenario, InfoMode } from "../../types/poker";
+import { computeStrictShowdown } from "./winner";
 
 interface OpenAIConfig {
   apiKey: string;
@@ -28,6 +29,7 @@ const DEFAULT_MODEL = "gpt-4.1-mini";
 const SYSTEM_PROMPT = [
   "You are a strict Texas Hold'em evaluator focused on GTO-first analysis.",
   "Use the full action timeline globally, then judge only the target player in context.",
+  "A strict showdown winner computation will be provided as strictShowdown. Use it as ground truth when status is resolved.",
   "Return JSON only with keys:",
   "verdict (good|questionable|bad), severity (0-3), summary (string), rationale (string[] max 4), alternativeLine (string optional).",
   "No markdown, no extra keys."
@@ -85,7 +87,8 @@ export function createOpenAIEvaluationClient(config: OpenAIConfig): OpenAIEvalua
       const userPayload = {
         targetPlayerId,
         infoMode: mode,
-        scenario
+        scenario,
+        strictShowdown: computeStrictShowdown(scenario)
       };
 
       const response = await fetch(`${baseUrl}/chat/completions`, {

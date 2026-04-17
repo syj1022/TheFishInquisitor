@@ -4,12 +4,26 @@
 import { chooseVoicepackClip, playVoicepackLine } from "../../src/lib/voice/voicepack";
 
 test("selects uniformly from all variants for a scenario", () => {
-  const first = chooseVoicepackClip("好fo好fo", () => 0);
+  let rolls = 0;
+  const random = () => {
+    rolls += 1;
+    return rolls === 1 ? 0.2 : 0;
+  };
+  const first = chooseVoicepackClip("好fo好fo", random);
   const last = chooseVoicepackClip("好fo好fo", () => 0.999999);
 
   expect(first).toBeTruthy();
   expect(last).toBeTruthy();
   expect(first).not.toEqual(last);
+});
+
+test("can trigger global laugh variants on any line", () => {
+  const random = vi.fn()
+    .mockReturnValueOnce(0)
+    .mockReturnValueOnce(0.999999);
+  const clip = chooseVoicepackClip("打得没问题", random);
+  expect(clip).toBeTruthy();
+  expect(random).toHaveBeenCalledTimes(2);
 });
 
 test("plays one selected voicepack clip", async () => {

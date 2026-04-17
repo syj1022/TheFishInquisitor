@@ -7,7 +7,13 @@ import { useState } from "react";
 import PokerTablePreview from "../../../src/components/manual/PokerTablePreview";
 import type { ActionsByStreet } from "../../../src/components/manual/StreetActionsEditor";
 
-function PokerTableHarness() {
+function PokerTableHarness({
+  heroStack = "100",
+  villainStack = "100"
+}: {
+  heroStack?: string;
+  villainStack?: string;
+}) {
   const [actionsByStreet, setActionsByStreet] = useState<ActionsByStreet>({
     preflop: [],
     flop: [],
@@ -19,8 +25,8 @@ function PokerTableHarness() {
     <PokerTablePreview
       seatCount={2}
       players={[
-        { name: "杰哥", position: "BTN", stack: "100", holeCards: ["As", "Kd"] },
-        { name: "小白", position: "BB", stack: "100", holeCards: ["7c", "7d"] }
+        { name: "杰哥", position: "BTN", stack: heroStack, holeCards: ["As", "Kd"] },
+        { name: "小白", position: "BB", stack: villainStack, holeCards: ["7c", "7d"] }
       ]}
       board={{ flop: [undefined, undefined, undefined], turn: undefined, river: undefined }}
       actionsByStreet={actionsByStreet}
@@ -59,4 +65,18 @@ test("shows auto all-in amount and hides amount input", async () => {
 
   expect(screen.queryByLabelText("Amount preflop 1")).not.toBeInTheDocument();
   expect(screen.getByText("All-in auto: 100")).toBeInTheDocument();
+});
+
+test("auto-fills call to highest bet and caps by remaining stack", async () => {
+  const user = userEvent.setup();
+  render(<PokerTableHarness heroStack="40" villainStack="100" />);
+
+  await user.click(screen.getByRole("button", { name: "Add Action" }));
+  await user.selectOptions(screen.getByLabelText("Action preflop 1"), "raise");
+  await user.type(screen.getByLabelText("Amount preflop 1"), "60");
+
+  await user.click(screen.getByRole("button", { name: "Add Action" }));
+  await user.selectOptions(screen.getByLabelText("Action preflop 2"), "call");
+
+  expect((screen.getByLabelText("Amount preflop 2") as HTMLInputElement).value).toBe("40");
 });

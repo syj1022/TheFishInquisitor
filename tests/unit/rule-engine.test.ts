@@ -45,3 +45,29 @@ test("uses full action timeline context when judging target action", () => {
   expect(result.verdict).toBe("questionable");
   expect(result.rationale.some((line) => line.includes("flop"))).toBe(true);
 });
+
+test("includes strict winner note when showdown cards are complete", () => {
+  const engine = createRuleHeuristicEngine();
+  const scenario: HandScenario = {
+    handId: "h-eval-3",
+    players: [
+      { id: "p1", name: "Hero", stack: 100, position: "BTN" },
+      { id: "p2", name: "Villain", stack: 100, position: "BB" }
+    ],
+    potSize: 3,
+    actions: [],
+    board: {
+      flop: ["Ah", "Kd", "Qc"],
+      turn: "2s",
+      river: "3h"
+    },
+    holeCards: {
+      p1: ["As", "Ad"],
+      p2: ["Ks", "Kc"]
+    }
+  };
+
+  const result = engine.evaluate(scenario, "p1", "revealed_cards");
+  expect(result.rationale.some((line) => line.includes("Strict winner check"))).toBe(true);
+  expect(result.rationale.some((line) => line.includes("target wins"))).toBe(true);
+});

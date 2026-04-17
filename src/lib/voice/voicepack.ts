@@ -31,6 +31,17 @@ const CLIP_URL = {
   noIssue: new URL("../../../voicepack/打得没问题.MP3", import.meta.url).href
 } as const;
 
+const LAUGH_POOL = [
+  CLIP_URL.laugh1,
+  CLIP_URL.laugh2,
+  CLIP_URL.laugh3,
+  CLIP_URL.laugh4,
+  CLIP_URL.laugh5,
+  CLIP_URL.laugh6,
+  CLIP_URL.laugh7
+] as const;
+const LAUGH_TRIGGER_RATE = 0.18;
+
 const SCENARIO_VARIANTS: Readonly<Record<string, readonly string[]>> = {
   鱼: [CLIP_URL.fish, CLIP_URL.doubleFish, CLIP_URL.laugh1, CLIP_URL.laugh2, CLIP_URL.laugh3, CLIP_URL.laugh4],
   "你干嘛啊": [CLIP_URL.whatAreYouDoing, CLIP_URL.cluelessBoth, CLIP_URL.alwaysHasCards, CLIP_URL.laugh5],
@@ -38,10 +49,16 @@ const SCENARIO_VARIANTS: Readonly<Record<string, readonly string[]>> = {
   "你在讲什么鬼故事": [CLIP_URL.ghostStory, CLIP_URL.cluelessBoth, CLIP_URL.laugh7],
   "该你收池，打得有问题，不该call的": [CLIP_URL.badCall, CLIP_URL.overplay, CLIP_URL.polarized],
   太overplay了: [CLIP_URL.overplay, CLIP_URL.polarized, CLIP_URL.alwaysHasCards],
+  很极化: [CLIP_URL.polarized, CLIP_URL.overplay],
   没必要: [CLIP_URL.unnecessary, CLIP_URL.polarized],
+  没必要没必要: [CLIP_URL.unnecessary, CLIP_URL.findDaddy],
   好fo好fo: [CLIP_URL.goodFo, CLIP_URL.goodPlay, CLIP_URL.playedWell, CLIP_URL.noIssueAlt],
+  打得好: [CLIP_URL.playedWell, CLIP_URL.goodPlay, CLIP_URL.noIssueAlt],
   好打好打: [CLIP_URL.goodPlay, CLIP_URL.playedWell, CLIP_URL.noIssueAlt],
-  打得没问题: [CLIP_URL.noIssue, CLIP_URL.playedWell, CLIP_URL.noIssueAlt, CLIP_URL.goodPlay]
+  打得没问题: [CLIP_URL.noIssue, CLIP_URL.playedWell, CLIP_URL.noIssueAlt, CLIP_URL.goodPlay],
+  "你咋把把有牌呀": [CLIP_URL.alwaysHasCards, CLIP_URL.goodPlay],
+  "两个人都不知道在干什么": [CLIP_URL.cluelessBoth, CLIP_URL.doubleFish],
+  两条鱼: [CLIP_URL.doubleFish, CLIP_URL.fish]
 };
 
 let activeAudio: HTMLAudioElement | null = null;
@@ -77,6 +94,12 @@ function variantsForLine(line: string): readonly string[] {
 }
 
 export function chooseVoicepackClip(line: string, randomFn: RandomFn = Math.random): string | null {
+  const laughRoll = clampProbability(randomFn());
+  if (laughRoll < LAUGH_TRIGGER_RATE) {
+    const laughIndex = Math.floor(clampProbability(randomFn()) * LAUGH_POOL.length);
+    return LAUGH_POOL[laughIndex] ?? LAUGH_POOL[0];
+  }
+
   const variants = variantsForLine(line);
   if (variants.length === 0) {
     return null;

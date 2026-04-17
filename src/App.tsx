@@ -52,7 +52,7 @@ export default function App() {
         return missingError;
       }
 
-      const nextCommentary = buildCommentary(evaluation);
+      const nextCommentary = buildCommentary(evaluation, nextScenario);
       setCommentary(nextCommentary);
       const voiceResult = await playVoicepackLine(nextCommentary.roastLine);
       setStatusMessage(voiceResult.ok ? null : voiceResult.error ?? "Voice playback failed.");

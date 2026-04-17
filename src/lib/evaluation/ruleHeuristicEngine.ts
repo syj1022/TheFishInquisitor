@@ -3,6 +3,7 @@
 
 import type { EvaluationResult, HandAction, HandScenario, InfoMode, PlayerSeat } from "../../types/poker";
 import type { EvaluationEngine } from "./engine";
+import { computeStrictShowdown } from "./winner";
 
 interface TimelineState {
   activePlayers: Set<string>;
@@ -27,7 +28,10 @@ class RuleHeuristicEngine implements EvaluationEngine {
     }
 
     const { score, rationale } = evaluateActionsInGlobalTimeline(scenario, target);
+    const showdown = computeStrictShowdown(scenario);
+    const showdownNote = buildShowdownNote(showdown, target.id, scenario.players);
     const verdict = score >= 4 ? "bad" : score >= 2 ? "questionable" : "good";
+    const mergedRationale = [...(showdownNote ? [showdownNote] : []), ...rationale].slice(0, 4);
 
     return {
       targetPlayerId,
@@ -39,10 +43,42 @@ class RuleHeuristicEngine implements EvaluationEngine {
           : verdict === "questionable"
             ? "Global timeline shows leaks against pot-odds and pressure heuristics."
             : "Global line is consistent with baseline GTO heuristics.",
-      rationale: rationale.length > 0 ? rationale : ["No major heuristic penalties were triggered."],
+      rationale: mergedRationale.length > 0 ? mergedRationale : ["No major heuristic penalties were triggered."],
       alternativeLine: verdict === "good" ? undefined : "Prefer lower-variance sizing or a fold/call mix by pot odds."
     };
   }
+}
+
+function buildShowdownNote(
+  showdown: ReturnType<typeof computeStrictShowdown>,
+  targetPlayerId: string,
+  players: PlayerSeat[]
+): string | null {
+  if (showdown.status === "no_contenders") {
+    return "Strict winner check unavailable: no active players remain.";
+  }
+  if (showdown.status === "incomplete_cards") {
+    return "Strict winner check skipped: full board and active-player hole cards are required.";
+  }
+
+  if (showdown.byFold) {
+    if (showdown.winnerIds.includes(targetPlayerId)) {
+      return "Strict winner check: target wins because all opponents folded.";
+    }
+    return "Strict winner check: target folded out before showdown.";
+  }
+
+  if (showdown.winnerIds.includes(targetPlayerId)) {
+    if (showdown.winnerIds.length > 1) {
+      return "Strict winner check: target ties for best hand at showdown.";
+    }
+    return "Strict winner check: target wins at showdown.";
+  }
+
+  const winnerNames = showdown.winnerIds
+    .map((id) => players.find((player) => player.id === id)?.name ?? id)
+    .join(", ");
+  return `Strict winner check: target loses showdown (winner: ${winnerNames}).`;
 }
 
 function parseAmount(action: HandAction): number {

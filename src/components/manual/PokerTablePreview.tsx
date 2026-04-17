@@ -29,6 +29,7 @@ type ActiveCardSlot =
   | null;
 
 const STREET_KEYS: Street[] = ["preflop", "flop", "turn", "river"];
+const STREET_INDEX = new Map(STREET_KEYS.map((street, index) => [street, index]));
 const ACTION_OPTIONS: ActionChoice[] = ["none", "fold", "check", "call", "bet", "raise", "all_in"];
 const MANUAL_AMOUNT_ACTIONS = new Set<PlayerAction>(["call", "bet", "raise"]);
 const ACTION_ORDER_PRE_FLOP: TablePosition[] = [
@@ -186,6 +187,94 @@ function accumulateAmount(row: ActionDraft, stacksByActor: Map<string, number>, 
   committedByActor.set(row.actorId, (committedByActor.get(row.actorId) ?? 0) + amount);
 }
 
+function resolveAmountForState(
+  row: ActionDraft,
+  stacksByActor: Map<string, number>,
+  committedByActor: Map<string, number>
+): number {
+  if (row.action === "none" || row.action === "fold" || row.action === "check") {
+    return 0;
+  }
+  if (row.action === "all_in") {
+    const stack = stacksByActor.get(row.actorId) ?? 0;
+    const committed = committedByActor.get(row.actorId) ?? 0;
+    return Math.max(stack - committed, 0);
+  }
+  return parsePositiveNumber(row.amount);
+}
+
+function buildCommittedByActorBeforeStreet(
+  players: PlayerDraft[],
+  actionsByStreet: ActionsByStreet,
+  street: Street
+): Map<string, number> {
+  const stacksByActor = new Map(players.map((player, index) => [`p${index + 1}`, parsePositiveNumber(player.stack)]));
+  const committedByActor = new Map<string, number>();
+  const cutoff = STREET_INDEX.get(street) ?? 0;
+
+  STREET_KEYS.forEach((streetKey) => {
+    const streetPosition = STREET_INDEX.get(streetKey) ?? 0;
+    if (streetPosition >= cutoff) {
+      return;
+    }
+    actionsByStreet[streetKey].forEach((row) => {
+      const amount = resolveAmountForState(row, stacksByActor, committedByActor);
+      if (amount > 0) {
+        committedByActor.set(row.actorId, (committedByActor.get(row.actorId) ?? 0) + amount);
+      }
+    });
+  });
+
+  return committedByActor;
+}
+
+function applyAutoCallAmountsForStreet(
+  players: PlayerDraft[],
+  actionsByStreet: ActionsByStreet,
+  street: Street,
+  rows: ActionDraft[]
+): ActionDraft[] {
+  const stacksByActor = new Map(players.map((player, index) => [`p${index + 1}`, parsePositiveNumber(player.stack)]));
+  const committedByActor = buildCommittedByActorBeforeStreet(players, actionsByStreet, street);
+  const nextRows = rows.map((row) => ({ ...row }));
+  const streetContributed = new Map<string, number>();
+  let highestStreetContribution = 0;
+
+  nextRows.forEach((row) => {
+    const actorId = row.actorId;
+    const actorStreetContribution = streetContributed.get(actorId) ?? 0;
+
+    if (row.action === "call") {
+      const toCall = Math.max(highestStreetContribution - actorStreetContribution, 0);
+      const stack = stacksByActor.get(actorId) ?? 0;
+      const committed = committedByActor.get(actorId) ?? 0;
+      const remaining = Math.max(stack - committed, 0);
+      const autoAmount = Math.min(toCall, remaining);
+      row.amount = autoAmount > 0 ? formatNumber(autoAmount) : "";
+    }
+
+    const amount = resolveAmountForState(row, stacksByActor, committedByActor);
+    if (amount <= 0) {
+      return;
+    }
+
+    committedByActor.set(actorId, (committedByActor.get(actorId) ?? 0) + amount);
+    const nextStreetContribution = actorStreetContribution + amount;
+    streetContributed.set(actorId, nextStreetContribution);
+
+    if (
+      row.action === "bet" ||
+      row.action === "raise" ||
+      row.action === "all_in" ||
+      nextStreetContribution > highestStreetContribution
+    ) {
+      highestStreetContribution = Math.max(highestStreetContribution, nextStreetContribution);
+    }
+  });
+
+  return nextRows;
+}
+
 function computeAllInAmountForRow(
   players: PlayerDraft[],
   actionsByStreet: ActionsByStreet,
@@ -298,7 +387,8 @@ export default function PokerTablePreview({
       nextRow.amount = "";
     }
     nextRows[rowIndex] = nextRow;
-    onActionsChange({ ...actionsByStreet, [activeStreet]: nextRows });
+    const autoRows = applyAutoCallAmountsForStreet(players, actionsByStreet, activeStreet, nextRows);
+    onActionsChange({ ...actionsByStreet, [activeStreet]: autoRows });
   };
 
   const removeStreetAction = (rowIndex: number) => {
